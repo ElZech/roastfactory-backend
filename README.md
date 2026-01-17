@@ -1,310 +1,193 @@
-\# 🔥 RoastFactory Backend
+# 🔥 RoastFactory Backend
 
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-4.6-010101?style=flat-square&logo=socket.io)](https://socket.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://supabase.com/)
+[![Redis](https://img.shields.io/badge/Redis-Upstash-DC382D?style=flat-square&logo=redis&logoColor=white)](https://upstash.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?style=flat-square&logo=openai&logoColor=white)](https://openai.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
+> Real-time multiplayer roast battle backend with AI-powered judging
 
-Real-time multiplayer roast battle backend built with Node.js, WebSockets, AI judging, and PostgreSQL.
+## 🎯 Overview
 
+RoastFactory is a Web3 multiplayer game where players compete in real-time roast battles. This backend handles matchmaking, battle logic, AI judging, and persistent storage.
 
+## ✨ Features
 
-\## 🚀 Features
+- **⚡ Real-time WebSocket Communication** - Socket.io for instant multiplayer battles
+- **🤖 AI-Powered Judging** - GPT-4o-mini scores roasts on savagery, creativity, delivery, and relevance
+- **🗄️ PostgreSQL Database** - Supabase for persistent storage of battles, rounds, and user stats
+- **🚀 Redis Matchmaking** - Upstash Redis for efficient player queuing by tier
+- **🎮 3-Round Battle System** - Complete battle flow with scoring and winner determination
+- **📊 User Stats Tracking** - Win/loss records, total battles, and leaderboards
+- **💰 Tiered Prize Pools** - Bronze, Silver, Gold, and Diamond tiers
 
-
-
-\- \*\*Real-time WebSocket Communication\*\* - Socket.io for instant multiplayer battles
-
-\- \*\*AI-Powered Judging\*\* - OpenAI GPT-4o-mini scores roasts on savagery, creativity, delivery, and relevance
-
-\- \*\*PostgreSQL Database\*\* - Supabase for persistent storage of battles, rounds, and user stats
-
-\- \*\*Redis Matchmaking\*\* - Upstash Redis for efficient player queuing by tier and mode
-
-\- \*\*3-Round Battle System\*\* - Complete battle flow with scoring and winner determination
-
-\- \*\*User Stats Tracking\*\* - Win/loss records, total battles, and leaderboards
-
-\- \*\*Solana Integration Ready\*\* - Wallet-based authentication and rewards system
-
-
-
-\## 🏗️ Architecture
-
+## 🏗️ Architecture
 ```
-
 ┌─────────────┐      WebSocket      ┌──────────────┐
-
 │   Frontend  │ ◄─────────────────► │  Socket.io   │
-
 │  (Next.js)  │                     │    Server    │
-
 └─────────────┘                     └──────┬───────┘
-
-&nbsp;                                          │
-
-&nbsp;                   ┌──────────────────────┼──────────────────────┐
-
-&nbsp;                   │                      │                      │
-
-&nbsp;             ┌─────▼─────┐         ┌─────▼─────┐         ┌─────▼─────┐
-
-&nbsp;             │ PostgreSQL│         │   Redis   │         │  OpenAI   │
-
-&nbsp;             │ (Supabase)│         │ (Upstash) │         │ GPT-4o-mini│
-
-&nbsp;             └───────────┘         └───────────┘         └───────────┘
-
+                                           │
+                    ┌──────────────────────┼──────────────────────┐
+                    │                      │                      │
+              ┌─────▼─────┐         ┌─────▼─────┐         ┌─────▼─────┐
+              │ PostgreSQL│         │   Redis   │         │  OpenAI   │
+              │ (Supabase)│         │ (Upstash) │         │ GPT-4o-mini│
+              └───────────┘         └───────────┘         └───────────┘
 ```
 
-
-
-\## 📊 Database Schema
-
-
-
-\### Tables
-
-\- \*\*users\*\* - Wallet addresses, battle stats, earnings
-
-\- \*\*battles\*\* - Match data, players, tier, mode, winner
-
-\- \*\*rounds\*\* - Individual round data, roasts, scores, AI commentary
-
-\- \*\*clips\*\* - Battle highlights (planned feature)
-
-
-
-\## 🛠️ Tech Stack
-
-
-
-\- \*\*Runtime:\*\* Node.js
-
-\- \*\*WebSocket:\*\* Socket.io
-
-\- \*\*Database:\*\* Supabase (PostgreSQL)
-
-\- \*\*Cache/Queue:\*\* Upstash Redis
-
-\- \*\*AI:\*\* OpenAI GPT-4o-mini
-
-\- \*\*Blockchain:\*\* Solana (wallet integration)
-
-
-
-\## 🚀 Getting Started
-
-
-
-\### Prerequisites
-
-```bash
-
-Node.js 18+
-
-npm or yarn
-
+## 📁 Project Structure
+```
+roastfactory-backend/
+├── src/
+│   ├── config/
+│   │   └── constants.js      # Battle tiers, prompts, configuration
+│   ├── services/
+│   │   ├── aiJudge.js        # OpenAI integration for scoring
+│   │   └── database.js       # Supabase database operations
+│   └── utils/
+│       └── helpers.js        # Utility functions
+├── docs/
+│   ├── API.md                # WebSocket API documentation
+│   ├── ARCHITECTURE.md       # System design documentation
+│   └── DEPLOYMENT.md         # Deployment guide
+├── server.js                 # Main server entry point
+├── package.json
+└── .env.example
 ```
 
+## 🚀 Quick Start
 
+### Prerequisites
 
-\### Installation
+- Node.js 18+
+- Supabase account
+- Upstash Redis account
+- OpenAI API key
 
-
-
-1\. Clone the repository
-
+### Installation
 ```bash
-
+# Clone the repository
 git clone https://github.com/ElZech/roastfactory-backend.git
-
 cd roastfactory-backend
 
-```
-
-
-
-2\. Install dependencies
-
-```bash
-
+# Install dependencies
 npm install
 
-```
-
-
-
-3\. Configure environment variables
-
-```bash
-
+# Configure environment
 cp .env.example .env
+# Edit .env with your API keys
 
-\# Add your API keys:
-
-\# - SUPABASE\_URL
-
-\# - SUPABASE\_ANON\_KEY
-
-\# - UPSTASH\_REDIS\_REST\_URL
-
-\# - UPSTASH\_REDIS\_REST\_TOKEN
-
-\# - OPENAI\_API\_KEY
-
+# Start development server
+npm run dev
 ```
 
-
-
-4\. Run the server
-
-```bash
-
-npm start
-
+### Environment Variables
+```env
+PORT=4000
+FRONTEND_URL=http://localhost:3000
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_key
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+OPENAI_API_KEY=your_openai_key
 ```
 
+## 💰 Battle Tiers
 
+| Tier | Entry Fee | Winner Prize | Platform Fee |
+|------|-----------|--------------|--------------|
+| 🥉 Bronze | 2,000 ROAST | 3,800 ROAST | 200 ROAST |
+| 🥈 Silver | 6,000 ROAST | 11,400 ROAST | 600 ROAST |
+| 🥇 Gold | 8,000 ROAST | 15,200 ROAST | 800 ROAST |
+| 💎 Diamond | 10,000 ROAST | 19,000 ROAST | 1,000 ROAST |
 
-Server runs on `http://localhost:4000`
+## 🤖 AI Judging Criteria
 
+Each roast is scored (0-100) based on:
 
+| Criteria | Description |
+|----------|-------------|
+| **Savagery** | How brutal and cutting the roast is |
+| **Creativity** | Originality and cleverness |
+| **Delivery** | Word choice, flow, and impact |
+| **Relevance** | Staying on topic with the prompt |
 
-\## 📡 WebSocket Events
+## 📡 WebSocket Events
 
+### Client → Server
+| Event | Description |
+|-------|-------------|
+| `battle:join_queue` | Join matchmaking queue |
+| `battle:leave_queue` | Leave matchmaking queue |
+| `battle:submit_roast` | Submit roast for current round |
+| `battle:emoji_reaction` | Send emoji reaction |
 
+### Server → Client
+| Event | Description |
+|-------|-------------|
+| `battle:matched` | Match found, battle starting |
+| `battle:round_start` | New round beginning |
+| `battle:round_scored` | Round judged and scored |
+| `battle:ended` | Battle complete, winner declared |
 
-\### Client → Server
+> 📚 See [docs/API.md](docs/API.md) for complete API documentation
 
-\- `battle:join\_queue` - Join matchmaking
+## 🛠️ Tech Stack
 
-\- `battle:leave\_queue` - Leave matchmaking
+| Technology | Purpose |
+|------------|---------|
+| **Node.js** | Runtime environment |
+| **Express** | HTTP server |
+| **Socket.io** | WebSocket communication |
+| **Supabase** | PostgreSQL database |
+| **Upstash** | Redis for matchmaking |
+| **OpenAI** | AI-powered judging |
 
-\- `battle:submit\_roast` - Submit roast for current round
+## 📈 Performance
 
-\- `battle:request\_state` - Request current battle state
+- ⚡ Sub-second matchmaking
+- 🎯 Real-time score updates
+- 🔄 Handles concurrent battles efficiently
+- 💾 Redis caching for optimal queue management
 
-\- `battle:emoji\_reaction` - Send emoji reaction
+## 🚧 Roadmap
 
+- [ ] Voice mode with speech-to-text
+- [ ] Tournament brackets
+- [ ] Spectator mode
+- [ ] Battle replays
+- [ ] Real $ROAST token integration (Solana)
 
+## 📄 Documentation
 
-\### Server → Client
+- [API Documentation](docs/API.md)
+- [Architecture Guide](docs/ARCHITECTURE.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
 
-\- `battle:matched` - Match found, battle starting
+## 🤝 Contributing
 
-\- `battle:round\_start` - New round beginning
+Contributions are welcome! Please read the contributing guidelines first.
 
-\- `battle:opponent\_roast` - Opponent submitted roast
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-\- `battle:round\_scored` - Round judged and scored
+## 📄 License
 
-\- `battle:ended` - Battle complete, winner declared
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-\- `battle:opponent\_disconnected` - Opponent left
+## 👨‍💻 Author
 
-
-
-\## 🤖 AI Judging System
-
-
-
-The AI judge evaluates roasts based on:
-
-
-
-1\. \*\*Savagery\*\* - How brutal and cutting the roast is
-
-2\. \*\*Creativity\*\* - Originality and cleverness
-
-3\. \*\*Delivery\*\* - Word choice, flow, and impact
-
-4\. \*\*Relevance\*\* - Staying on topic with the prompt
-
-
-
-Each roast receives a score 0-100 and detailed breakdown.
-
-
-
-\## 🎮 Battle Flow
-
-
-
-1\. Players join matchmaking queue by tier (Bronze/Silver/Gold/Diamond)
-
-2\. System matches 2 players with same tier and mode
-
-3\. Battle begins with 3 rounds
-
-4\. Each round: Prompt → Players roast (30s) → AI judges
-
-5\. After 3 rounds: Winner determined by total score
-
-6\. Stats updated in database
-
-
-
-\## 📈 Performance
-
-
-
-\- Sub-second matchmaking
-
-\- Real-time score updates
-
-\- Handles concurrent battles efficiently
-
-\- Redis caching for optimal queue management
-
-
-
-\## 🔐 Security
-
-
-
-\- Row-level security on Supabase
-
-\- Environment variable protection
-
-\- CORS configuration
-
-\- Rate limiting ready
-
-
-
-\## 🚧 Roadmap
-
-
-
-\- \[ ] Voice mode recording and transcription
-
-\- \[ ] Clip generation system
-
-\- \[ ] Tournament brackets
-
-\- \[ ] Real $ROAST token rewards
-
-\- \[ ] Mobile app support
-
-
-
-\## 📄 License
-
-
-
-MIT
-
-
-
-\## 👨‍💻 Built By
-
-
-
-ElZech - \[GitHub](https://github.com/ElZech)
-
-
+**ElZech** - [GitHub](https://github.com/ElZech)
 
 ---
 
-
-
-\*\*Ready to get ROAST-ed you bun!\*\* 🤖
+<p align="center">
+  <b>Built with 🔥 and mass shipping energy</b>
+</p>
 
