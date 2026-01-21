@@ -46,10 +46,12 @@ const activeBattles = new Map();
 
 // Battle configuration
 const BATTLE_CONFIG = {
+  ROUND_DURATION: 30000, // 30 seconds
+  ROUNDS_PER_BATTLE: 3,
   ROAST_PROMPTS: {
     Bronze: [
       "Roast your opponent's fashion sense",
-      "Roast your opponent's gaming skills", 
+      "Roast your opponent's choice of partner", 
       "Roast your opponent's cooking abilities"
     ],
     Silver: [
