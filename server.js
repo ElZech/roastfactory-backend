@@ -297,7 +297,7 @@ if (Object.keys(battle.rounds[round]).length === 2) {
 async function tryMatchmaking(tier, mode) {
   console.log('🔍 tryMatchmaking called! Tier:', tier, 'Mode:', mode);
   
-  const players = matchmakingQueue.filter(p => p.tier === tier && p.mode === mode);
+  const players = matchmakingQueue.filter(p => p.mode === mode);
   
   console.log('👥 Players in queue:', players.length);
   
