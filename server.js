@@ -32,7 +32,7 @@ const httpServer = createServer(app);
 // Configure CORS to allow frontend connection
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://roastedonchain.fun"],
     methods: ["GET", "POST"]
   }
 });
@@ -48,6 +48,12 @@ const activeBattles = new Map();
 const BATTLE_CONFIG = {
   ROUND_DURATION: 30000, // 30 seconds
   ROUNDS_PER_BATTLE: 3,
+  TIER_PRIZES: {
+    Bronze: 2000,
+    Silver: 6000,
+    Gold: 8000,
+    Diamond: 10000
+  },
   ROAST_PROMPTS: {
     Bronze: [
       "Roast your opponent's fashion sense",
@@ -174,7 +180,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ⭐ NEW: Client requests current battle state
+  // Client requests current battle state
   socket.on('battle:request_state', ({ battleId }) => {
     console.log('📡 Client requesting state for battle:', battleId);
     
@@ -202,7 +208,7 @@ io.on('connection', (socket) => {
       battleId: battle.id,
       round: battle.currentRound,
       prompt: prompt,
-      duration: 30000
+      duration: BATTLE_CONFIG.ROUND_DURATION
     });
   });
 
@@ -211,8 +217,8 @@ io.on('connection', (socket) => {
     const { battleId, round, roast, mode } = data;
     const battle = activeBattles.get(battleId);
 
- console.log('📝 Roast received:', roast);
-  console.log('📝 Roast length:', roast?.length);
+    console.log('📝 Roast received:', roast);
+    console.log('📝 Roast length:', roast?.length);
     
     if (!battle) return;
     
@@ -244,19 +250,19 @@ io.on('connection', (socket) => {
       .eq('battle_id', battleId)
       .eq('round_number', round);
     
-// Check if both players submitted
-if (Object.keys(battle.rounds[round]).length === 2) {
-  // Add scoring flag to prevent duplicates
-  if (!battle.rounds[round].isScoring) {
-    battle.rounds[round].isScoring = true;
-    
-    // Both submitted - score the round
-    setTimeout(() => {
-      scoreRound(battleId, round);
-    }, 1000);
-  }
-}
-});
+    // Check if both players submitted
+    if (Object.keys(battle.rounds[round]).length === 2) {
+      // Add scoring flag to prevent duplicates
+      if (!battle.rounds[round].isScoring) {
+        battle.rounds[round].isScoring = true;
+        
+        // Both submitted - score the round
+        setTimeout(() => {
+          scoreRound(battleId, round);
+        }, 1000);
+      }
+    }
+  });
 
   // Send emoji reaction
   socket.on('battle:emoji_reaction', (data) => {
@@ -295,6 +301,14 @@ if (Object.keys(battle.rounds[round]).length === 2) {
   });
 });
 
+// Get the lower tier for fair matching
+function getLowerTier(tier1, tier2) {
+  const tierOrder = ['Bronze', 'Silver', 'Gold', 'Diamond'];
+  const index1 = tierOrder.indexOf(tier1);
+  const index2 = tierOrder.indexOf(tier2);
+  return tierOrder[Math.min(index1, index2)];
+}
+
 // Matchmaking logic
 async function tryMatchmaking(tier, mode) {
   console.log('🔍 tryMatchmaking called! Tier:', tier, 'Mode:', mode);
@@ -311,12 +325,15 @@ async function tryMatchmaking(tier, mode) {
     matchmakingQueue.splice(matchmakingQueue.indexOf(player2), 1);
     
     const battleId = crypto.randomUUID();
+    
+    // Use lowest tier for fair stakes
+    const battleTier = getLowerTier(player1.tier, player2.tier);
 
     console.log('💾 Attempting to save battle to database...');
     console.log('Battle ID:', battleId);
-    console.log('Player 1 ID:', player1.userId);
-    console.log('Player 2 ID:', player2.userId);
-    console.log('Tier:', tier);
+    console.log('Player 1 ID:', player1.userId, '| Tier:', player1.tier);
+    console.log('Player 2 ID:', player2.userId, '| Tier:', player2.tier);
+    console.log('Battle Tier (lowest):', battleTier);
     console.log('Mode:', mode);
 
     // Save battle to database
@@ -326,9 +343,9 @@ async function tryMatchmaking(tier, mode) {
         id: battleId,
         player1_id: player1.userId,
         player2_id: player2.userId,
-        tier: tier,
+        tier: battleTier,
         mode: mode,
-        prize_pool: 0,
+        prize_pool: BATTLE_CONFIG.TIER_PRIZES[battleTier] * 2,
         status: 'active'
       })
       .select()
@@ -342,10 +359,10 @@ async function tryMatchmaking(tier, mode) {
       console.log('Battle data:', dbBattleData);
     }
 
-    // Create battle in memory
+    // Create battle in memory with the lower tier
     const battle = {
       id: battleId,
-      tier,
+      tier: battleTier,
       mode,
       players: [player1, player2],
       rounds: {},
@@ -355,19 +372,21 @@ async function tryMatchmaking(tier, mode) {
 
     activeBattles.set(battleId, battle);
     
-    console.log(`Match found! Battle ${battleId} created`);
+    console.log(`Match found! Battle ${battleId} created with tier ${battleTier}`);
     
     // Notify both players
     io.to(player1.socketId).emit('battle:matched', {
       battleId,
       opponent: { userId: player2.userId },
-      mode
+      mode,
+      tier: battleTier
     });
     
     io.to(player2.socketId).emit('battle:matched', {
       battleId,
       opponent: { userId: player1.userId },
-      mode
+      mode,
+      tier: battleTier
     });
     
     // Start first round after 3 seconds
@@ -384,7 +403,6 @@ async function startRound(battleId, roundNumber) {
   
   const prompts = BATTLE_CONFIG.ROAST_PROMPTS[battle.tier];
   const prompt = prompts[roundNumber - 1];
-  const roundDuration = 30000;
   
   console.log(`Starting round ${roundNumber} in battle ${battleId}`);
   
@@ -407,41 +425,41 @@ async function startRound(battleId, roundNumber) {
       battleId: battle.id,
       round: roundNumber,
       prompt,
-      duration: roundDuration
+      duration: BATTLE_CONFIG.ROUND_DURATION
     });
   });
   
-// Auto-end round after duration (force submit if players don't)
-setTimeout(() => {
-  const currentBattle = activeBattles.get(battleId);
-  if (!currentBattle) return;
-  
-  // Initialize round if not exists
-  if (!currentBattle.rounds[roundNumber]) {
-    currentBattle.rounds[roundNumber] = {};
-  }
-  
-  // Auto-submit empty roast for players who didn't submit
-  if (!currentBattle.rounds[roundNumber].player1) {
-    currentBattle.rounds[roundNumber].player1 = {
-      roast: "(No roast submitted)",
-      submittedAt: Date.now()
-    };
-  }
-  if (!currentBattle.rounds[roundNumber].player2) {
-    currentBattle.rounds[roundNumber].player2 = {
-      roast: "(No roast submitted)",
-      submittedAt: Date.now()
-    };
-  }
-  
-  // Score the round if not already scoring
-  if (!currentBattle.rounds[roundNumber].isScoring) {
-    currentBattle.rounds[roundNumber].isScoring = true;
-    console.log(`⏰ Round ${roundNumber} auto-ended - scoring now`);
-    scoreRound(battleId, roundNumber);
-  }
-}, BATTLE_CONFIG.ROUND_DURATION + 3000);
+  // Auto-end round after duration (force submit if players don't)
+  setTimeout(() => {
+    const currentBattle = activeBattles.get(battleId);
+    if (!currentBattle) return;
+    
+    // Initialize round if not exists
+    if (!currentBattle.rounds[roundNumber]) {
+      currentBattle.rounds[roundNumber] = {};
+    }
+    
+    // Auto-submit empty roast for players who didn't submit
+    if (!currentBattle.rounds[roundNumber].player1) {
+      currentBattle.rounds[roundNumber].player1 = {
+        roast: "(No roast submitted)",
+        submittedAt: Date.now()
+      };
+    }
+    if (!currentBattle.rounds[roundNumber].player2) {
+      currentBattle.rounds[roundNumber].player2 = {
+        roast: "(No roast submitted)",
+        submittedAt: Date.now()
+      };
+    }
+    
+    // Score the round if not already scoring
+    if (!currentBattle.rounds[roundNumber].isScoring) {
+      currentBattle.rounds[roundNumber].isScoring = true;
+      console.log(`⏰ Round ${roundNumber} auto-ended - scoring now`);
+      scoreRound(battleId, roundNumber);
+    }
+  }, BATTLE_CONFIG.ROUND_DURATION + 3000);
 }
 
 // Score a round using AI
@@ -506,13 +524,13 @@ Respond ONLY with valid JSON in this exact format:
     }
     
     const scores = JSON.parse(jsonStr);
-// Ensure there's always a winner (no ties)
-if (scores.roast1_score === scores.roast2_score) {
-  // Add random tiebreaker (1-5 points)
-  const bonus = Math.floor(Math.random() * 5) + 1;
-  scores.roast1_score += bonus;
-  console.log(`Tie detected, added ${bonus} bonus to player 1`);
-}
+    
+    // Ensure there's always a winner (no ties)
+    if (scores.roast1_score === scores.roast2_score) {
+      const bonus = Math.floor(Math.random() * 5) + 1;
+      scores.roast1_score += bonus;
+      console.log(`Tie detected, added ${bonus} bonus to player 1`);
+    }
     
     await supabase
       .from('rounds')
@@ -583,7 +601,7 @@ async function endBattle(battleId) {
   const battle = activeBattles.get(battleId);
   if (!battle) return;
   
-  console.log(`Battle ${battleId} ended`);  // ✅ FIXED
+  console.log(`Battle ${battleId} ended`);
   
   try {
     const { data: rounds, error } = await supabase
@@ -644,45 +662,39 @@ async function endBattle(battleId) {
       }
     }
     
+    // Use battle.tier (which is already the lower tier)
+    const entryFee = BATTLE_CONFIG.TIER_PRIZES[battle.tier] || 2000;
+    const totalPool = entryFee * 2;
+    const platformFee = totalPool * 0.05;
+    const winnerPrize = totalPool - platformFee;
+    
     battle.players.forEach((player, index) => {
       const isWinner = player.userId === winnerId;
       const yourTotal = index === 0 ? player1Total : player2Total;
       const oppTotal = index === 0 ? player2Total : player1Total;
-      
-      // Dynamic prize pool based on tier
-const tierPrizes = {
-  Bronze: 2000,
-  Silver: 6000,
-  Gold: 8000,
-  Diamond: 10000
-};
-      
-      const entryFee = tierPrizes[battle.tier] || 100;
-      const totalPool = entryFee * 2;
-      const platformFee = totalPool * 0.05;
-      const winnerPrize = totalPool - platformFee;
       
       io.to(player.socketId).emit('battle:ended', {
         yourScore: yourTotal,
         opponentScore: oppTotal,
         result: isWinner ? 'win' : 'lose',
         earnings: isWinner ? winnerPrize : -entryFee,
-        prizePool: totalPool
+        prizePool: totalPool,
+        tier: battle.tier
       });
     });
     
-    console.log(`Battle ${battleId} winner: ${winnerId}`);
+    console.log(`Battle ${battleId} winner: ${winnerId} | Tier: ${battle.tier} | Prize: ${winnerPrize}`);
     
   } catch (error) {
     console.error('Error ending battle:', error);
   }
   
   activeBattles.delete(battleId);
-}  // ✅ CLOSES endBattle
+}
 
 const PORT = process.env.PORT || 4000;
 
 httpServer.listen(PORT, () => {
-  console.log(`🔥 RoastPush backend running on port ${PORT}`)
-  console.log(`WebSocket server ready for connections`); 
+  console.log(`🔥 RoastFactory backend running on port ${PORT}`);
+  console.log(`WebSocket server ready for connections`);
 });
