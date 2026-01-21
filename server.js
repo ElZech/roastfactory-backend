@@ -409,17 +409,37 @@ async function startRound(battleId, roundNumber) {
     });
   });
   
-  // Auto-end round after duration
+// Auto-end round after duration (force submit if players don't)
 setTimeout(() => {
   const currentBattle = activeBattles.get(battleId);
-  if (currentBattle && currentBattle.rounds[roundNumber]) {
-    // Only score if not already scoring
-    if (!currentBattle.rounds[roundNumber].isScoring) {
-      currentBattle.rounds[roundNumber].isScoring = true;
-      scoreRound(battleId, roundNumber);
-    }
+  if (!currentBattle) return;
+  
+  // Initialize round if not exists
+  if (!currentBattle.rounds[roundNumber]) {
+    currentBattle.rounds[roundNumber] = {};
   }
-}, roundDuration + 5000);
+  
+  // Auto-submit empty roast for players who didn't submit
+  if (!currentBattle.rounds[roundNumber].player1) {
+    currentBattle.rounds[roundNumber].player1 = {
+      roast: "(No roast submitted)",
+      submittedAt: Date.now()
+    };
+  }
+  if (!currentBattle.rounds[roundNumber].player2) {
+    currentBattle.rounds[roundNumber].player2 = {
+      roast: "(No roast submitted)",
+      submittedAt: Date.now()
+    };
+  }
+  
+  // Score the round if not already scoring
+  if (!currentBattle.rounds[roundNumber].isScoring) {
+    currentBattle.rounds[roundNumber].isScoring = true;
+    console.log(`⏰ Round ${roundNumber} auto-ended - scoring now`);
+    scoreRound(battleId, roundNumber);
+  }
+}, BATTLE_CONFIG.ROUND_DURATION + 3000);
 }
 
 // Score a round using AI
